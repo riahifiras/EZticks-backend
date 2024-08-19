@@ -41,8 +41,7 @@ exports.handler = async (event) => {
         };
     }
 
-    // Check for required fields
-    const requiredFields = ['userName', 'userId', 'eventId', 'eventName', 'hostId', 'issueDate', 'rate', 'ticketPrice'];
+    const requiredFields = ['userName', 'userId', 'eventId', 'eventName', 'hostName', 'issueDate', 'rate', 'ticketPrice'];
     const missingFields = requiredFields.filter(field => !item.hasOwnProperty(field));
 
     if (missingFields.length > 0) {
@@ -71,7 +70,6 @@ exports.handler = async (event) => {
         console.log(`Making PUT request to ${getEventUrl} with data:`, slotsData);
         await axios.put(getEventUrl, slotsData);
 
-        // Proceed with creating the ticket in DynamoDB if the PUT request is successful
         item.id = uuidv4();
 
         const params = {
@@ -80,7 +78,6 @@ exports.handler = async (event) => {
         };
         await dynamodb.put(params).promise();
 
-        // Generate and upload the ticket PDF
         const pdfUrl = await generateAndUploadPDF(item);
 
         return {
@@ -91,7 +88,6 @@ exports.handler = async (event) => {
     } catch (error) {
         console.error('Error details:', error);
 
-        // Handle rollback logic if needed, e.g., by logging or notifying of the failed request
         return {
             statusCode: 500,
             headers: headers,
@@ -106,12 +102,10 @@ exports.handler = async (event) => {
 
 const generateAndUploadPDF = async (item) => {
   try {
-    // Create a new PDF document
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([600, 200]); // Horizontal ticket
+    const page = pdfDoc.addPage([600, 200]); 
     const { width, height } = page.getSize();
 
-    // Load the logo image
     const logoUrl = 'https://static.vecteezy.com/system/resources/thumbnails/012/986/755/small/abstract-circle-logo-icon-free-png.png'; // Replace with your logo URL
     let logoImageBytes;
     try {
@@ -124,31 +118,26 @@ const generateAndUploadPDF = async (item) => {
     
     const logoImage = await pdfDoc.embedPng(logoImageBytes);
 
-    // Draw the logo on the right
     const logoWidth = 120;
     const logoHeight = 120;
     page.drawImage(logoImage, {
-      x: width - logoWidth - 20, // 20px padding from the right edge
-      y: height / 2 - logoHeight / 2, // Center vertically
+      x: width - logoWidth - 20, 
+      y: height / 2 - logoHeight / 2, 
       width: logoWidth,
       height: logoHeight,
       rotate: degrees(0),
     });
 
-    // Embed a standard font
     const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // Custom function to format the date
     const formatDate = (dateString) => {
       const date = new Date(dateString);
       const options = { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' };
       return date.toLocaleDateString('en-US', options);
     };
 
-    // Format the date
     const formattedDate = formatDate(item.issueDate);
 
-    // Add event details text on the left
     page.drawText(item.eventName, {
       x: 20,
       y: height - 25,
@@ -165,7 +154,7 @@ const generateAndUploadPDF = async (item) => {
       font: font,
     });
 
-    page.drawText(`Host ID: ${item.hostId}`, {
+    page.drawText(`Host: ${item.hostName}`, {
       x: 20,
       y: height - 75,
       size: 12,
@@ -197,7 +186,6 @@ const generateAndUploadPDF = async (item) => {
       font: font,
     });
 
-    // Add a footer
     page.drawText(`Ticket ID: ${item.id}`, {
       x: 20,
       y: 30,
@@ -206,14 +194,11 @@ const generateAndUploadPDF = async (item) => {
       font: font,
     });
 
-    // Serialize the PDF document to bytes
     const pdfBytes = await pdfDoc.save();
 
-    // Define the S3 bucket and object key
     const bucketName = 'ticket-dev-yesss';
     const objectKey = `pdfs/ticket-${item.id}.pdf`;
 
-    // Upload the PDF to S3
     await s3.putObject({
       Bucket: bucketName,
       Key: objectKey,
@@ -221,7 +206,6 @@ const generateAndUploadPDF = async (item) => {
       ContentType: 'application/pdf',
     }).promise();
 
-    // Return the URL of the created PDF
     const pdfUrl = `https://${bucketName}.s3.amazonaws.com/${objectKey}`;
     return pdfUrl;
   } catch (error) {

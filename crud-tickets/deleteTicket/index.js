@@ -19,30 +19,25 @@ exports.handler = async (event) => {
     }
 
     try {
-        const { ticketId } = event.pathParameters;
+        const { id } = event.pathParameters;
 
-        // Fetch the ticket details to get eventId
-        const getTicketUrl = `https://zkyeza1yt2.execute-api.us-east-1.amazonaws.com/dev/tickets/${ticketId}`;
+        const getTicketUrl = `https://zkyeza1yt2.execute-api.us-east-1.amazonaws.com/dev/tickets/${id}`;
         const ticketResponse = await axios.get(getTicketUrl);
         const eventId = ticketResponse.data.eventId;
 
-        // Fetch the current event data
         const getEventUrl = `https://eea5ym4cdf.execute-api.us-east-1.amazonaws.com/dev/events/${eventId}`;
         const eventResponse = await axios.get(getEventUrl);
         const currentSlots = eventResponse.data.slots;
 
-        // Increase the slots count by 1
         const updatedSlots = currentSlots + 1;
         const updateSlotsUrl = getEventUrl;
         const slotsData = { slots: updatedSlots };
 
-        // Make the PUT request to update slots
         await axios.put(updateSlotsUrl, slotsData);
 
-        // Delete the ticket from DynamoDB
         const params = {
             TableName: tableName,
-            Key: { ticketId }
+            Key: { id }
         };
 
         await dynamodb.delete(params).promise();

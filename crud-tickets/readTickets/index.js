@@ -1,6 +1,6 @@
 const AWS = require('aws-sdk');
 const dynamodb = new AWS.DynamoDB.DocumentClient();
-const tableName = 'tickets';
+const tableName = 'ticket-dev-ezticks-tickets';
 
 exports.handler = async (event) => {
     const headers = {

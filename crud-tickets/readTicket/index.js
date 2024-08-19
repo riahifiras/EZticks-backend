@@ -1,6 +1,6 @@
 const AWS = require('aws-sdk');
 const dynamodb = new AWS.DynamoDB.DocumentClient();
-const tableName = 'tickets';
+const tableName = 'ticket-dev-ezticks-tickets';
 
 exports.handler = async (event) => {
     const headers = {
@@ -18,10 +18,10 @@ exports.handler = async (event) => {
     }
 
     try {
-        const { ticketId } = event.pathParameters;
+        const { id } = event.pathParameters;
         const params = {
             TableName: tableName,
-            Key: { ticketId }
+            Key: { id }
         };
 
         const result = await dynamodb.get(params).promise();
